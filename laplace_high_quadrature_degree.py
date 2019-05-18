@@ -21,19 +21,23 @@ def F(u, v):
     return -dot(grad(v), grad(u))*dx
 
 
+parameters = {"smoothing": fe.Constant(1.)}
+
 def manufactured_solution(mesh):
     
     x = fe.SpatialCoordinate(mesh)[0]
     
-    return tanh(pi*x)
+    s = parameters["smoothing"]
+    
+    return tanh(pi*x/s)
     
     
 def compute_space_accuracy_via_mms(
-        grid_sizes, element_degree, quadrature_degree):
-
-    print("h, L2_norm_error")
+        grid_sizes, element_degree, quadrature_degree, smoothing):
     
-    h, e = [], []
+    parameters["smoothing"].assign(smoothing)
+    
+    h, e, order = [], [], []
     
     for gridsize in grid_sizes:
     
@@ -59,25 +63,29 @@ def compute_space_accuracy_via_mms(
         
         h.append(1./float(gridsize))
         
-        print(str(h[-1]) + ", " + str(e[-1]))
+        if len(e) > 1:
     
-    r = h[-2]/h[-1] 
-    
-    log = math.log
-    
-    order = log(e[-2]/e[-1])/log(r)
-    
-    return order
-    
+            r = h[-2]/h[-1] 
+            
+            log = math.log
+            
+            order = log(e[-2]/e[-1])/log(r)
+            
+            print("{0: <4}, {1: .3f}, {2: .5f}, {3: .3f}, {4: .3f}".format(
+                str(quadrature_degree), smoothing, h[-1], e[-1], order))
+            
     
 if __name__ == "__main__":
 
+    print("q,     s,      h,        error,  order")
+    
     for q in (None, 1):
     
-        print("Running for quadrature degree {}".format(q))
+        for s in (1., 0.1, 0.01):
         
-        order = compute_space_accuracy_via_mms(
-            grid_sizes = (8, 16), element_degree = 1, quadrature_degree = q)
-    
-        print("Observed spatial order of accuracy is " + str(order))
-    
+            compute_space_accuracy_via_mms(
+                grid_sizes = (8, 16, 32, 64, 128, 256), 
+                element_degree = 1, 
+                quadrature_degree = q, 
+                smoothing = s)
+            
