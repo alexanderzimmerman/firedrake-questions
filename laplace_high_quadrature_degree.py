@@ -11,6 +11,16 @@ tanh, pi = fe.tanh, fe.pi
 
 parameters = {"smoothing": fe.Constant(1.)}
 
+def R(u):
+        """ Strong form residual """    
+        return div(grad(u))
+
+    
+def F(u, v):
+        """ Weak form residual """
+        return -dot(grad(v), grad(u))
+        
+        
 def manufactured_solution(mesh):
     
     x = fe.SpatialCoordinate(mesh)[0]
@@ -24,16 +34,7 @@ def compute_space_accuracy_via_mms(
         grid_sizes, element_degree, quadrature_degree, smoothing):
     
     dx = fe.dx(degree = quadrature_degree)
-
-    def R(u):
-        """ Strong form residual """    
-        return div(grad(u))
-
-        
-    def F(u, v):
-        """ Weak form residual """
-        return -dot(grad(v), grad(u))*dx
-
+    
     parameters["smoothing"].assign(smoothing)
     
     h, e, order = [], [], []
@@ -56,7 +57,7 @@ def compute_space_accuracy_via_mms(
         
         u_h = fe.Function(V)
         
-        fe.solve(F(u, v) == v*R(u_m)*dx, u_h, bcs = bc)
+        fe.solve(F(u, v)*dx == v*R(u_m)*dx, u_h, bcs = bc)
 
         e.append(math.sqrt(fe.assemble(fe.inner(u_h - u_m, u_h - u_m)*dx)))
         
